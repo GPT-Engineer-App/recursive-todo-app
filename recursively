@@ -1,0 +1,138 @@
+import React, { useState } from "react";
+import styled from "styled-components";
+
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+  children: Todo[];
+}
+
+const initialTodos: Todo[] = [
+  {
+    id: 1,
+    text: "Complete project",
+    completed: false,
+    children: [
+      {
+        id: 2,
+        text: "Design UI",
+        completed: true,
+        children: [],
+      },
+      {
+        id: 3,
+        text: "Implement functionality",
+        completed: false,
+        children: [
+          {
+            id: 4,
+            text: "Add new task",
+            completed: false,
+            children: [],
+          },
+          {
+            id: 5,
+            text: "Edit task",
+            completed: false,
+            children: [],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const TodoList: React.FC = () => {
+  const [todos, setTodos] = useState<Todo[]>(initialTodos);
+
+  const handleAddTodo = (parentId: number | null, text: string) => {
+    const newTodo: Todo = {
+      id: Date.now(),
+      text,
+      completed: false,
+      children: [],
+    };
+
+    if (parentId === null) {
+      setTodos([...todos, newTodo]);
+    } else {
+      const updateTodos = (todos: Todo[]): Todo[] =>
+        todos.map((todo) => {
+          if (todo.id === parentId) {
+            return { ...todo, children: [...todo.children, newTodo] };
+          }
+          return { ...todo, children: updateTodos(todo.children) };
+        });
+
+      setTodos(updateTodos(todos));
+    }
+  };
+
+  const handleEditTodo = (id: number, text: string) => {
+    const updateTodos = (todos: Todo[]): Todo[] =>
+      todos.map((todo) => {
+        if (todo.id === id) {
+          return { ...todo, text };
+        }
+        return { ...todo, children: updateTodos(todo.children) };
+      });
+
+    setTodos(updateTodos(todos));
+  };
+
+  const handleToggleTodo = (id: number) => {
+    const updateTodos = (todos: Todo[]): Todo[] =>
+      todos.map((todo) => {
+        if (todo.id === id) {
+          const completed = !todo.completed;
+          return {
+            ...todo,
+            completed,
+            children: todo.children.map((child) => ({ ...child, completed })),
+          };
+        }
+        return { ...todo, children: updateTodos(todo.children) };
+      });
+
+    setTodos(updateTodos(todos));
+  };
+
+  const renderTodo = (todo: Todo, depth: number) => (
+    <TodoItem key={todo.id} depth={depth}>
+      <Checkbox type="checkbox" checked={todo.completed} onChange={() => handleToggleTodo(todo.id)} />
+      <TodoText value={todo.text} onChange={(e) => handleEditTodo(todo.id, e.target.value)} />
+      <AddButton onClick={() => handleAddTodo(todo.id, "")}>+</AddButton>
+      {todo.children.map((child) => renderTodo(child, depth + 1))}
+    </TodoItem>
+  );
+
+  return (
+    <TodoListContainer>
+      {todos.map((todo) => renderTodo(todo, 0))}
+      <AddButton onClick={() => handleAddTodo(null, "")}>+</AddButton>
+    </TodoListContainer>
+  );
+};
+
+const TodoListContainer = styled.div`
+  margin: 20px;
+`;
+
+const TodoItem = styled.div<{ depth: number }>`
+  margin-left: ${(props) => props.depth * 20}px;
+`;
+
+const Checkbox = styled.input`
+  margin-right: 10px;
+`;
+
+const TodoText = styled.input`
+  margin-right: 10px;
+`;
+
+const AddButton = styled.button`
+  margin-left: 10px;
+`;
+
+export default TodoList;
